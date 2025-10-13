@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package transcoder;
+
+import "transcode.proto";
+
+option java_multiple_files = true;
+option java_package = "com.example.transcoder.proto";
+option java_outer_classname = "StatusProto";
+
+// Service for tracking job status
+service StatusService {
+  // Get status of a transcoding job
+  rpc GetJobStatus(JobStatusRequest) returns (JobStatusResponse);
+  
+  // Stream status updates for a job
+  rpc StreamJobStatus(JobStatusRequest) returns (stream JobStatusResponse);
+  
+  // List all jobs and their statuses
+  rpc ListJobs(ListJobsRequest) returns (ListJobsResponse);
+}
+
+// Request for job status
+message JobStatusRequest {
+  // Job identifier
+  string job_id = 1;
+}
+
+// Response with job status
+message JobStatusResponse {
+  // Job identifier
+  string job_id = 1;
+  
+  // Video identifier
+  string video_id = 2;
+  
+  // Current job status
+  JobStatus status = 3;
+  
+  // Progress percentage (0-100)
+  int32 progress = 4;
+  
+  // Error message if job failed
+  string error_message = 5;
+  
+  // Timestamp when job started
+  int64 start_time = 6;
+  
+  // Timestamp when job completed/failed/cancelled
+  int64 end_time = 7;
+  
+  // Transcoded output files (only populated when job is complete)
+  repeated OutputFile output_files = 8;
+  
+  // Current stage of processing
+  string current_stage = 9;
+  
+  // Estimated time remaining in seconds
+  int32 estimated_time_remaining = 10;
+}
+
+// Output file information
+message OutputFile {
+  // Format name (e.g., "1080p", "720p")
+  string format = 1;
+  
+  // File path or URL
+  string location = 2;
+  
+  // File size in bytes
+  int64 size = 3;
+  
+  // Duration in seconds
+  float duration = 4;
+  
+  // Video bitrate
+  int32 bitrate = 5;
+}
+
+// Request to list jobs
+message ListJobsRequest {
+  // Maximum number of jobs to return
+  int32 limit = 1;
+  
+  // Filter by status
+  repeated JobStatus status_filter = 2;
+  
+  // Pagination token
+  string page_token = 3;
+}
+
+// Response with list of jobs
+message ListJobsResponse {
+  // List of job statuses
+  repeated JobStatusResponse jobs = 1;
+  
+  // Next page token (if more results available)
+  string next_page_token = 2;
+  
+  // Total number of jobs matching filter
+  int32 total_count = 3;
+}
+

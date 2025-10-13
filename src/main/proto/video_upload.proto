@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package transcoder;
+
+option java_multiple_files = true;
+option java_package = "com.example.transcoder.proto";
+option java_outer_classname = "VideoUploadProto";
+
+// Service for handling video uploads
+service VideoUploadService {
+  // Stream-based upload for video files
+  rpc UploadVideo(stream VideoChunk) returns (UploadResponse);
+  
+  // Get upload status
+  rpc GetUploadStatus(UploadStatusRequest) returns (UploadStatusResponse);
+}
+
+// Chunk of video data for streaming upload
+message VideoChunk {
+  // Unique identifier for the upload session
+  string upload_id = 1;
+  
+  // Binary chunk of the video file
+  bytes content = 2;
+  
+  // Original filename
+  string filename = 3;
+  
+  // Content type (e.g., video/mp4)
+  string content_type = 4;
+  
+  // Sequence number for ordering chunks
+  int32 sequence_number = 5;
+  
+  // Flag indicating if this is the last chunk
+  bool is_last_chunk = 6;
+}
+
+// Response to upload request
+message UploadResponse {
+  // Unique identifier for the uploaded video
+  string video_id = 1;
+  
+  // Upload status
+  UploadStatus status = 2;
+  
+  // Error message if upload failed
+  string error_message = 3;
+}
+
+// Request to get upload status
+message UploadStatusRequest {
+  // Unique identifier for the upload session
+  string upload_id = 1;
+}
+
+// Response with upload status
+message UploadStatusResponse {
+  // Upload status
+  UploadStatus status = 1;
+  
+  // Percentage complete (0-100)
+  int32 percent_complete = 2;
+  
+  // Error message if upload failed
+  string error_message = 3;
+  
+  // Unique identifier for the uploaded video (if complete)
+  string video_id = 4;
+}
+
+// Enum for upload status
+enum UploadStatus {
+  UPLOAD_UNKNOWN = 0;
+  UPLOAD_IN_PROGRESS = 1;
+  UPLOAD_COMPLETED = 2;
+  UPLOAD_FAILED = 3;
+}
+

@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package transcoder;
+
+option java_multiple_files = true;
+option java_package = "com.example.transcoder.proto";
+option java_outer_classname = "TranscodeProto";
+
+// Service for transcoding videos
+service TranscodeService {
+  // Request to transcode a video
+  rpc TranscodeVideo(TranscodeRequest) returns (TranscodeResponse);
+  
+  // Cancel a transcoding job
+  rpc CancelTranscoding(CancelRequest) returns (CancelResponse);
+}
+
+// Request to transcode a video
+message TranscodeRequest {
+  // Unique identifier for the uploaded video
+  string video_id = 1;
+  
+  // Output formats requested
+  repeated OutputFormat output_formats = 2;
+  
+  // Output file format (container)
+  string output_container = 3;
+  
+  // Additional transcoding options
+  TranscodeOptions options = 4;
+}
+
+// Response to transcode request
+message TranscodeResponse {
+  // Unique job identifier for the transcoding task
+  string job_id = 1;
+  
+  // Initial job status
+  JobStatus status = 2;
+  
+  // Estimated time to complete (in seconds)
+  int32 estimated_time = 3;
+  
+  // Error message if request failed
+  string error_message = 4;
+}
+
+// Video output format specification
+message OutputFormat {
+  // Resolution name (e.g., "1080p", "720p", "480p", "360p")
+  string name = 1;
+  
+  // Width in pixels
+  int32 width = 2;
+  
+  // Height in pixels
+  int32 height = 3;
+  
+  // Video codec (e.g., "h264", "h265")
+  string video_codec = 4;
+  
+  // Video bitrate in kbps
+  int32 bitrate = 5;
+}
+
+// Additional transcoding options
+message TranscodeOptions {
+  // Audio codec (e.g., "aac", "mp3")
+  string audio_codec = 1;
+  
+  // Audio bitrate in kbps
+  int32 audio_bitrate = 2;
+  
+  // Frame rate (frames per second)
+  float frame_rate = 3;
+  
+  // Enable/disable two-pass encoding
+  bool two_pass = 4;
+  
+  // Constant Rate Factor (CRF) quality setting (0-51, lower is better)
+  int32 crf = 5;
+}
+
+// Request to cancel a transcoding job
+message CancelRequest {
+  // Job identifier to cancel
+  string job_id = 1;
+}
+
+// Response to cancel request
+message CancelResponse {
+  // Whether cancellation was successful
+  bool success = 1;
+  
+  // Error message if cancellation failed
+  string error_message = 2;
+}
+
+// Enum for job status
+enum JobStatus {
+  JOB_UNKNOWN = 0;
+  JOB_QUEUED = 1;
+  JOB_IN_PROGRESS = 2;
+  JOB_COMPLETED = 3;
+  JOB_FAILED = 4;
+  JOB_CANCELLED = 5;
+}
+
