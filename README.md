@@ -1,311 +1,392 @@
-# YouTube Transcode Service Python Client
+# Video Transcode Microservice
 
-A Python client library for the YouTube Transcode Service that enables video uploading, transcoding, and job status monitoring through a clean, Pythonic interface.
+A high-performance video transcoding microservice built with Java Spring Boot and gRPC. This service enables video uploading, transcoding to multiple formats, and real-time job status monitoring through efficient gRPC APIs.
 
 ## Features
 
-- **Video Upload**: Stream-based chunked video upload with automatic sequencing
-- **Transcoding**: Request video transcoding with customizable formats and encoding options
-- **Job Status Monitoring**: Check job status, stream real-time updates, and list jobs
-- **Unified API**: Convenient interfaces for all service operations
-- **Error Handling**: Robust error handling with specific exception types
-- **Async-Ready**: Support for non-blocking operations
-- **Type Hints**: Full type annotation support for modern Python development
+- **gRPC-Based Communication**: High-performance binary protocol for efficient data transfer
+- **Stream-Based Video Upload**: Chunked upload support for large video files
+- **Multi-Format Transcoding**: Transcode videos to multiple resolutions and formats simultaneously
+- **Real-Time Status Monitoring**: Stream job status updates with progress tracking
+- **Asynchronous Processing**: Non-blocking transcoding with configurable worker thread pools
+- **FFmpeg Integration**: Industry-standard video processing engine
+- **RESTful APIs**: Optional REST endpoints alongside gRPC services
+- **Job Management**: List, monitor, and cancel transcoding jobs
+- **Dockerized Deployment**: Ready-to-deploy container configuration
 
-## Installation
+## Architecture
 
-### Prerequisites
+This microservice exposes three main gRPC services:
 
-- Python 3.7 or later
-- pip package manager
+1. **VideoUploadService**: Handle chunked video file uploads
+2. **TranscodeService**: Request and manage video transcoding jobs
+3. **StatusService**: Monitor job progress and retrieve job information
 
-### Install from PyPI (Recommended)
+## Prerequisites
+
+- Java 22 or later
+- Maven 3.6+
+- FFmpeg installed and accessible in system PATH
+- Docker (optional, for containerized deployment)
+
+## Installation & Setup
+
+### Clone the Repository
 
 ```bash
-pip install youtube-transcode-client
+git clone https://github.com/yourusername/grpc_video_transcode_microservice.git
+cd grpc_video_transcode_microservice
 ```
 
-### Install from Source
+### Configure Application
+
+Edit `src/main/resources/application.properties` to customize:
+
+```properties
+# gRPC Server Configuration
+grpc.server.port=9090
+grpc.server.max-inbound-message-size=10485760  # 10MB
+
+# File Storage Configuration
+storage.temp.directory=temp-uploads
+storage.output.directory=transcoded-videos
+storage.max-file-size=5120MB  # 5GB max
+
+# Transcoding Configuration
+transcode.worker.thread-pool-size=5
+transcode.default-formats=1080p,720p,480p,360p
+transcode.ffmpeg.path=ffmpeg
+transcode.ffprobe.path=ffprobe
+```
+
+### Build the Project
 
 ```bash
-git clone https://github.com/yourusername/youtube-transcode-client.git
-cd youtube-transcode-client
-pip install -e .
+mvn clean install
 ```
 
-## Quick Start
+### Run the Service
 
-This example shows how to upload a video and transcode it with default settings:
-
-```python
-from transcoder import TranscoderClient
-
-# Create a client
-with TranscoderClient(host="localhost", port=9090) as client:
-    # Upload and transcode a video in one operation
-    video_id, job_id, _ = client.upload_and_transcode(
-        file_path="path/to/video.mp4"
-    )
-    
-    print(f"Video uploaded with ID: {video_id}")
-    print(f"Transcoding job started with ID: {job_id}")
-    
-    # Check the job status
-    status = client.status.get_job_status(job_id)
-    print(f"Job status: {status.status}, Progress: {status.progress}%")
+```bash
+mvn spring-boot:run
 ```
 
-## Usage Examples
+The gRPC server will start on port 9090 (or your configured port).
 
-### Upload a Video
+### Docker Deployment
 
-```python
-from transcoder import TranscoderClient
+Build and run using Docker:
 
-with TranscoderClient() as client:
-    # Upload a video with 1MB chunks
-    video_id = client.upload.upload_video(
-        file_path="path/to/video.mp4",
-        chunk_size=1024 * 1024,  # 1MB chunks
-        content_type="video/mp4"  # Optional, auto-detected if not provided
-    )
-    
-    print(f"Video uploaded with ID: {video_id}")
+```bash
+# Build the Docker image
+docker build -t video-transcode-service .
+
+# Run the container
+docker run -p 9090:9090 -v $(pwd)/transcoded-videos:/app/transcoded-videos video-transcode-service
 ```
 
-### Request Transcoding with Custom Settings
+## Java Client Library
 
-```python
-from transcoder import TranscoderClient
+A dedicated Java client library is available to easily interact with this microservice:
 
-with TranscoderClient() as client:
-    # Define custom output formats
-    output_formats = [
-        {
-            "name": "1080p",
-            "width": 1920,
-            "height": 1080,
-            "video_codec": "libx264",
-            "bitrate": 4500
-        },
-        {
-            "name": "720p",
-            "width": 1280,
-            "height": 720,
-            "video_codec": "libx264",
-            "bitrate": 2500
-        }
-    ]
-    
-    # Define transcoding options
-    options = {
-        "audio_codec": "aac",
-        "audio_bitrate": 192,
-        "frame_rate": 30.0,
-        "two_pass": True,
-        "crf": 18  # Lower CRF = higher quality
-    }
-    
-    # Request transcoding
-    job_id = client.transcode.transcode_video(
-        video_id="your-video-id",
-        output_formats=output_formats,
-        output_container="mp4",
-        options=options
-    )
-    
-    print(f"Transcoding job started with ID: {job_id}")
+**Repository**: [https://github.com/Shawn-Imran/video_transcode_microservice_client.git](https://github.com/Shawn-Imran/video_transcode_microservice_client.git)
+
+### Quick Start with Java Client
+
+Add the client dependency to your project (Maven):
+
+```xml
+<dependency>
+    <groupId>com.example</groupId>
+    <artifactId>video-transcode-client</artifactId>
+    <version>1.0.0</version>
+</dependency>
 ```
 
-### Monitor Job Status
+Example usage:
 
-```python
-from transcoder import TranscoderClient
+```java
+// Create a client instance
+TranscoderClient client = new TranscoderClient("localhost", 9090);
 
-with TranscoderClient() as client:
-    # Get a one-time status update
-    status = client.status.get_job_status("your-job-id")
-    print(f"Status: {status.status}, Progress: {status.progress}%")
-    
-    # Stream status updates in real-time
-    for status in client.status.stream_job_status("your-job-id"):
-        print(f"Status: {status.status}, Progress: {status.progress}%")
-        if not status.is_active:
-            break
-    
-    # Wait for job completion with a callback
-    def status_callback(status):
-        print(f"Status update: {status.status}, Progress: {status.progress}%")
-    
-    final_status = client.status.wait_for_completion(
-        job_id="your-job-id",
-        callback=status_callback
-    )
-    
-    if final_status.is_completed:
-        print("Job completed successfully!")
-        for file in final_status.output_files:
-            print(f"Output file: {file['format']} at {file['location']}")
-    elif final_status.is_failed:
-        print(f"Job failed: {final_status.error_message}")
+// Upload a video
+String videoId = client.uploadVideo("path/to/video.mp4");
+
+// Request transcoding
+List<OutputFormat> formats = Arrays.asList(
+    OutputFormat.newBuilder()
+        .setName("1080p")
+        .setWidth(1920)
+        .setHeight(1080)
+        .setVideoCodec("libx264")
+        .setBitrate(4500)
+        .build(),
+    OutputFormat.newBuilder()
+        .setName("720p")
+        .setWidth(1280)
+        .setHeight(720)
+        .setVideoCodec("libx264")
+        .setBitrate(2500)
+        .build()
+);
+
+String jobId = client.transcodeVideo(videoId, formats);
+
+// Monitor job status
+client.streamJobStatus(jobId, status -> {
+    System.out.println("Progress: " + status.getProgress() + "%");
+    System.out.println("Status: " + status.getStatus());
+});
 ```
 
-### Manage Jobs
-
-```python
-from transcoder import TranscoderClient
-
-with TranscoderClient() as client:
-    # List active jobs
-    active_jobs = client.get_active_jobs()
-    print(f"Active jobs: {len(active_jobs)}")
-    
-    # List completed jobs
-    completed_jobs = client.get_completed_jobs()
-    print(f"Completed jobs: {len(completed_jobs)}")
-    
-    # Cancel a job
-    if active_jobs:
-        job_id = active_jobs[0].job_id
-        success = client.transcode.cancel_transcoding(job_id)
-        print(f"Job {job_id} cancellation {'succeeded' if success else 'failed'}")
-```
+For detailed documentation and examples, visit the [client repository](https://github.com/Shawn-Imran/video_transcode_microservice_client.git).
 
 ## API Reference
 
-### Main Client
+### gRPC Services
 
-#### `TranscoderClient`
+#### VideoUploadService
 
-The main client that provides access to all service functionality.
+Upload video files using streaming chunks:
 
-```python
-client = TranscoderClient(
-    host="localhost",  # Service hostname or IP
-    port=9090,         # Service port
-    secure=False,      # Whether to use TLS
-    timeout=60.0       # Default timeout in seconds
-)
+```protobuf
+service VideoUploadService {
+  rpc UploadVideo(stream VideoChunk) returns (UploadResponse);
+  rpc GetUploadStatus(UploadStatusRequest) returns (UploadStatusResponse);
+}
 ```
 
-Key methods:
-- `upload_and_transcode()`: Unified method for uploading and transcoding
-- `get_active_jobs()`, `get_completed_jobs()`, `get_failed_jobs()`: Job listing helpers
-- `cancel_all_active_jobs()`: Cancel all active transcoding jobs
+**VideoChunk** fields:
+- `upload_id`: Unique identifier for the upload session
+- `content`: Binary chunk data
+- `filename`: Original filename
+- `content_type`: MIME type (e.g., "video/mp4")
+- `sequence_number`: Chunk ordering
+- `is_last_chunk`: Flag for final chunk
 
-### Video Upload
+#### TranscodeService
 
-#### `VideoUploadClient`
+Request and manage transcoding jobs:
 
-Client for video upload operations.
+```protobuf
+service TranscodeService {
+  rpc TranscodeVideo(TranscodeRequest) returns (TranscodeResponse);
+  rpc CancelTranscoding(CancelRequest) returns (CancelResponse);
+}
+```
 
-Key methods:
-- `upload_video()`: Upload a video file in chunks
-- `get_upload_status()`: Check the status of an upload
+**TranscodeRequest** fields:
+- `video_id`: ID of uploaded video
+- `output_formats`: List of desired output formats
+- `output_container`: Container format (e.g., "mp4", "webm")
+- `options`: Transcoding options (audio codec, bitrate, frame rate, two-pass encoding, CRF)
 
-### Transcoding
+**OutputFormat** specification:
+- `name`: Resolution identifier (e.g., "1080p", "720p")
+- `width`: Video width in pixels
+- `height`: Video height in pixels
+- `video_codec`: Codec (e.g., "libx264", "libx265")
+- `bitrate`: Target bitrate in kbps
 
-#### `TranscodeClient`
+#### StatusService
 
-Client for video transcoding operations.
+Monitor transcoding job progress:
 
-Key methods:
-- `transcode_video()`: Request transcoding of a video
-- `cancel_transcoding()`: Cancel an in-progress job
-- `create_output_format()`: Helper to create output format specifications
+```protobuf
+service StatusService {
+  rpc GetJobStatus(JobStatusRequest) returns (JobStatusResponse);
+  rpc StreamJobStatus(JobStatusRequest) returns (stream JobStatusResponse);
+  rpc ListJobs(ListJobsRequest) returns (ListJobsResponse);
+}
+```
 
-### Status Monitoring
+**JobStatusResponse** includes:
+- Job status (QUEUED, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)
+- Progress percentage (0-100)
+- Current processing stage
+- Estimated time remaining
+- Output file information (when completed)
+- Error messages (if failed)
 
-#### `StatusClient`
+## Configuration
 
-Client for job status monitoring.
+### Transcoding Options
 
-Key methods:
-- `get_job_status()`: Get current job status
-- `stream_job_status()`: Stream real-time status updates
-- `wait_for_completion()`: Wait for a job to complete
-- `list_jobs()`: List jobs with filtering and pagination
-- `list_all_jobs()`: List all jobs matching a filter
+The service supports various FFmpeg transcoding options:
 
-#### `JobStatus`
+- **Audio Codec**: AAC, MP3, Opus, etc.
+- **Video Codec**: H.264 (libx264), H.265 (libx265), VP9, etc.
+- **Quality Control**: CRF values (0-51, lower = higher quality)
+- **Encoding Mode**: Single-pass or two-pass encoding
+- **Frame Rate**: Custom frame rates (e.g., 24, 30, 60 fps)
 
-Class representing a job status with properties:
-- `status`: String status ('queued', 'in_progress', 'completed', 'failed', 'cancelled')
-- `progress`: Integer percentage of completion (0-100)
-- `is_completed`, `is_failed`, `is_active`, `is_cancelled`: Status helper properties
-- `output_files`: List of output file information (for completed jobs)
-- `error_message`: Error details (for failed jobs)
+### Storage Configuration
+
+Configure storage paths for temporary uploads and transcoded outputs:
+
+```properties
+storage.temp.directory=temp-uploads
+storage.output.directory=transcoded-videos
+storage.max-file-size=5120MB
+```
+
+### Performance Tuning
+
+Adjust worker thread pool size based on your hardware:
+
+```properties
+transcode.worker.thread-pool-size=5  # Number of concurrent transcoding jobs
+```
+
+## Use Cases
+
+- **Video Streaming Platforms**: Prepare videos in multiple resolutions for adaptive bitrate streaming
+- **Content Management Systems**: Automatic video optimization for web delivery
+- **Media Processing Pipelines**: Integrate video transcoding into larger workflows
+- **Cloud Storage Services**: On-demand video format conversion
+- **Educational Platforms**: Optimize video content for various devices and bandwidths
+
+## Project Structure
+
+```
+grpc_video_transcode_microservice/
+├── src/
+│   ├── main/
+│   │   ├── java/com/example/transcoder/
+│   │   │   ├── TranscoderApplication.java       # Main application
+│   │   │   ├── config/                          # Configuration classes
+│   │   │   ├── model/                           # Domain models
+│   │   │   ├── repository/                      # Data repositories
+│   │   │   ├── service/                         # Business logic
+│   │   │   │   ├── grpc/                        # gRPC service implementations
+│   │   │   │   ├── FFmpegService.java           # FFmpeg integration
+│   │   │   │   ├── TranscodeManager.java        # Job management
+│   │   │   │   └── VideoStorageService.java     # File storage
+│   │   │   └── rest/                            # REST controllers (optional)
+│   │   ├── proto/                               # Protocol Buffer definitions
+│   │   │   ├── video_upload.proto
+│   │   │   ├── transcode.proto
+│   │   │   └── status.proto
+│   │   └── resources/
+│   │       └── application.properties           # Application configuration
+│   └── test/                                    # Test classes
+├── Dockerfile                                   # Docker configuration
+├── pom.xml                                      # Maven dependencies
+└── README.md                                    # This file
+```
+
+## Testing
+
+Run the test suite:
+
+```bash
+mvn test
+```
+
+### Manual Testing with grpcurl
+
+Install [grpcurl](https://github.com/fullstorydev/grpcurl) and test endpoints:
+
+```bash
+# List available services
+grpcurl -plaintext localhost:9090 list
+
+# Get job status
+grpcurl -plaintext -d '{"job_id": "your-job-id"}' \
+  localhost:9090 transcoder.StatusService/GetJobStatus
+```
+
+## Monitoring & Health Checks
+
+The service exposes Spring Boot Actuator endpoints:
+
+- **Health**: `http://localhost:8080/actuator/health`
+- **Metrics**: `http://localhost:8080/actuator/metrics`
+- **Info**: `http://localhost:8080/actuator/info`
 
 ## Error Handling
 
-The client library provides specific exception types for different error scenarios:
+The service provides detailed error responses:
 
-```python
-from transcoder.services.base import TranscoderError, ConnectionError, ServiceError
-from transcoder.services.upload import UploadError
-from transcoder.services.transcode import TranscodeError
-from transcoder.services.status import StatusError
+- **INVALID_ARGUMENT**: Invalid request parameters
+- **NOT_FOUND**: Video or job not found
+- **RESOURCE_EXHAUSTED**: Server capacity exceeded
+- **INTERNAL**: Internal server error
+- **CANCELLED**: Operation cancelled by client
 
-try:
-    # Client operations...
-except ConnectionError as e:
-    # Handle connection issues
-    print(f"Connection error: {e}")
-except UploadError as e:
-    # Handle upload-specific errors
-    print(f"Upload error: {e}")
-except TranscodeError as e:
-    # Handle transcoding-specific errors
-    print(f"Transcode error: {e}")
-except StatusError as e:
-    # Handle status-specific errors
-    print(f"Status error: {e}")
-except ServiceError as e:
-    # Handle other service errors
-    print(f"Service error: {e.code} - {e.details}")
-except TranscoderError as e:
-    # Handle any other client errors
-    print(f"Client error: {e}")
-```
+## Performance Considerations
 
-Best practices:
-1. Always handle specific exceptions before general ones
-2. Always close the client when done (or use with context manager)
-3. Use timeouts for operations that might take a long time
-4. Check status codes and error messages for debugging
+- **Chunk Size**: Recommended 1-5MB for optimal upload performance
+- **Concurrent Jobs**: Adjust `transcode.worker.thread-pool-size` based on CPU cores
+- **Storage**: Ensure sufficient disk space for temporary and output files
+- **Memory**: FFmpeg processes can be memory-intensive; monitor heap usage
 
 ## Contributing
 
-Contributions are welcome! Here's how you can help:
+Contributions are welcome! To contribute:
 
-1. **Report bugs**: Create an issue describing the bug and steps to reproduce
-2. **Suggest features**: Open an issue to suggest new functionality
-3. **Submit pull requests**: Fork the repository, make changes, and submit a PR
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-Development setup:
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/youtube-transcode-client.git
-cd youtube-transcode-client
+### Development Guidelines
 
-# Create a virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install development dependencies
-pip install -e ".[dev]"
-
-# Run tests
-pytest
-```
+- Follow Java coding conventions
+- Write unit tests for new features
+- Update documentation as needed
+- Ensure all tests pass before submitting PR
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
----
-
 ## Related Projects
 
-- [YouTube Transcode Service](https://github.com/yourusername/youtube-transcode-service) - The Java service this client communicates with
+- [Video Transcode Microservice Client](https://github.com/Shawn-Imran/video_transcode_microservice_client.git) - Java client library for this service
 
+## Troubleshooting
+
+### FFmpeg Not Found
+
+Ensure FFmpeg is installed and in your system PATH:
+
+```bash
+# Linux/Mac
+which ffmpeg
+
+# Windows
+where ffmpeg
+```
+
+Or configure the full path in `application.properties`:
+
+```properties
+transcode.ffmpeg.path=/usr/local/bin/ffmpeg
+transcode.ffprobe.path=/usr/local/bin/ffprobe
+```
+
+### Port Already in Use
+
+Change the gRPC port in `application.properties`:
+
+```properties
+grpc.server.port=9091
+```
+
+### Out of Memory Errors
+
+Increase JVM heap size:
+
+```bash
+java -Xmx4g -jar youtube-transcode-service.jar
+```
+
+## Support
+
+For issues, questions, or feature requests, please open an issue on GitHub.
+
+---
+
+**Built with** ❤️ **using Spring Boot, gRPC, and FFmpeg**
